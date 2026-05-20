@@ -6,10 +6,8 @@ const { createRemoteJWKSet, jwtVerify } = require("jose-cjs");
 dotenv.config();
 
 // Express app initialization
-const app = express()
-const port = process.env.PORT ;
-
-
+const app = express();
+const port = process.env.PORT;
 
 //Middlewares
 app.use(cors());
@@ -27,7 +25,7 @@ const client = new MongoClient(uri, {
 });
 // JWKS from Auth0
 const JWKS = createRemoteJWKSet(
-  new URL(`${process.env.CLIENT_URL}/api/auth/jwks`)
+  new URL(`${process.env.CLIENT_URL}/api/auth/jwks`),
 );
 // verify auth0 token
 const verifyToken = async (req, res, next) => {
@@ -39,14 +37,13 @@ const verifyToken = async (req, res, next) => {
 
   try {
     const { payload } = await jwtVerify(token, JWKS);
-    
+
     req.user = payload;
     next();
   } catch (error) {
     return res.status(401).json({ message: "Unauthorized: Invalid token" });
   }
 };
-
 
 const run = async () => {
   try {
@@ -62,32 +59,35 @@ const run = async () => {
       const car = req.body;
       const result = await carsCollection.insertOne(car);
       res.send(result);
-      
     });
 
-   // API endpoint to get all cars (with Search & Filter)
-app.get("/car", async (req, res) => {
-  // ১. ফন্টএন্ড থেকে পাঠানো search এবং category রিসিভ করা
-  const { search, category } = req.query;
-  
-  // ২. একটা ফাঁকা query অবজেক্ট বানানো (ডিফল্টভাবে সব গাড়ি দেখাবে)
-  let query = {};
+    // FeaturedCars API endpoint to get featured cars
+    app.get("/featuredCars", async (req, res) => {
+      const featuredCars = await carsCollection.find().toArray();
+      let featuredCarsWithLimit = [];
+      if (featuredCars.length > 6) {
+        featuredCarsWithLimit = featuredCars.slice(0, 8);
+      }
+      res.send(featuredCarsWithLimit);
+    });
 
-  // ৩. যদি সার্চ বক্সে কিছু লিখে সার্চ করে:
-  if (search) {
-    query.carModel = { $regex: search, $options: "i" }; 
-    // $regex এবং 'i' দিলে ছোট/বড় হাতের অক্ষর যাই লিখুক, ম্যাচ করে খুঁজে বের করবে
-  }
+    // API endpoint to get all cars (with Search & Filter)
+    app.get("/car", async (req, res) => {
+      const { search, category } = req.query;
 
-  // ৪. যদি কোনো নির্দিষ্ট ক্যাটাগরি সিলেক্ট করে (All না হয়):
-  if (category && category !== "All") {
-    query.category = category;
-  }
+      let query = {};
 
-  // ৫.   query অবজেক্ট অনুযায়ী ডাটাবেস থেকে গাড়ির তথ্যগুলো খুঁজে বের করা
-  const cars = await carsCollection.find(query).toArray();
-  res.send(cars);
-});
+      if (search) {
+        query.carModel = { $regex: search, $options: "i" };
+      }
+
+      if (category && category !== "All") {
+        query.category = category;
+      }
+
+      const cars = await carsCollection.find(query).toArray();
+      res.send(cars);
+    });
 
     await client.db("admin").command({ ping: 1 });
     console.log(
@@ -100,11 +100,11 @@ app.get("/car", async (req, res) => {
 run().catch(console.dir);
 
 // API Routes
-app.get('/', (req, res) => {
-  res.send('Ride Vault Server is running.......')
-})
+app.get("/", (req, res) => {
+  res.send("Ride Vault Server is running.......");
+});
 
 // listener
 app.listen(port, () => {
-  console.log(`Ride Vault Server is running on port ${port}`)
-})
+  console.log(`Ride Vault Server is running on port ${port}`);
+});
