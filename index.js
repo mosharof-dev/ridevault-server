@@ -110,6 +110,24 @@ const run = async () => {
       }
     });
 
+  
+// API endpoint to update a car by ID (Private Route)
+app.patch("/my-cars/:id", verifyToken, async (req, res) => {
+  try {
+    const id = req.params.id;
+    const updatedData = req.body;
+    
+    const filter = { _id: new ObjectId(id) };
+    const updateDoc = { $set: updatedData };
+    
+    const result = await carsCollection.updateOne(filter, updateDoc);
+    res.send(result);
+  } catch (error) {
+    console.error("Update Error:", error);
+    res.status(500).send({ message: "Failed to update car data" });
+  }
+});
+
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!",
