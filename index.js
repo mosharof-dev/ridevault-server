@@ -57,13 +57,38 @@ const run = async () => {
     const carsCollection = database.collection("cars");
     // const bookingCollection = admin.collection("booking");
 
+    // API endpoint to add a new car
     app.post("/car", verifyToken, async (req, res) => {
       const car = req.body;
       const result = await carsCollection.insertOne(car);
       res.send(result);
       
     });
- 
+
+   // API endpoint to get all cars (with Search & Filter)
+app.get("/car", async (req, res) => {
+  // ১. ফন্টএন্ড থেকে পাঠানো search এবং category রিসিভ করা
+  const { search, category } = req.query;
+  
+  // ২. একটা ফাঁকা query অবজেক্ট বানানো (ডিফল্টভাবে সব গাড়ি দেখাবে)
+  let query = {};
+
+  // ৩. যদি সার্চ বক্সে কিছু লিখে সার্চ করে:
+  if (search) {
+    query.carModel = { $regex: search, $options: "i" }; 
+    // $regex এবং 'i' দিলে ছোট/বড় হাতের অক্ষর যাই লিখুক, ম্যাচ করে খুঁজে বের করবে
+  }
+
+  // ৪. যদি কোনো নির্দিষ্ট ক্যাটাগরি সিলেক্ট করে (All না হয়):
+  if (category && category !== "All") {
+    query.category = category;
+  }
+
+  // ৫.   query অবজেক্ট অনুযায়ী ডাটাবেস থেকে গাড়ির তথ্যগুলো খুঁজে বের করা
+  const cars = await carsCollection.find(query).toArray();
+  res.send(cars);
+});
+
     await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!",
