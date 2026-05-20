@@ -2,6 +2,7 @@ const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion } = require("mongodb");
+const { createRemoteJWKSet, jwtVerify } = require("jose-cjs");
 dotenv.config();
 
 // Express app initialization
@@ -24,6 +25,27 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   },
 });
+// JWKS from Auth0
+const JWKS = createRemoteJWKSet(
+  new URL(`${process.env.CLIENT_URL}/api/auth/jwks`)
+);
+// verify auth0 token
+const verifyToken = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ message: "Unauthorized: No token" });
+  }
+  const token = authHeader.split(" ")[1];
+
+  try {
+    const { payload } = await jwtVerify(token, JWKS);
+    
+    req.user = payload;
+    next();
+  } catch (error) {
+    return res.status(401).json({ message: "Unauthorized: Invalid token" });
+  }
+};
 
 
 const run = async () => {
@@ -31,10 +53,16 @@ const run = async () => {
     // Send a ping to confirm a successful connection
     await client.connect();
 
-    const database = client.db("ride-vault-database");
-    // const adminCollection = admin.collection("admin");
+    const database = client.db("ridevault-database");
+    const carsCollection = database.collection("cars");
     // const bookingCollection = admin.collection("booking");
 
+    app.post("/car", verifyToken, async (req, res) => {
+      const car = req.body;
+      const result = await carsCollection.insertOne(car);
+      res.send(result);
+      
+    });
  
     await client.db("admin").command({ ping: 1 });
     console.log(
