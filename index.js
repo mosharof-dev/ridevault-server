@@ -1,7 +1,7 @@
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const { createRemoteJWKSet, jwtVerify } = require("jose-cjs");
 dotenv.config();
 
@@ -70,7 +70,12 @@ const run = async () => {
       }
       res.send(featuredCarsWithLimit);
     });
-
+    // API endpoint to get a car by ID
+    app.get("/car/:id", async (req, res) => {
+      const id = req.params.id;
+      const car = await carsCollection.findOne({ _id: new ObjectId(id) });
+      res.send(car);
+    });
     // API endpoint to get all cars (with Search & Filter)
     app.get("/car", async (req, res) => {
       const { search, category } = req.query;
@@ -87,6 +92,22 @@ const run = async () => {
 
       const cars = await carsCollection.find(query).toArray();
       res.send(cars);
+    });
+
+    // API endpoint to get cars added by a specific user (Private Route)
+    app.get("/my-cars", verifyToken, async (req, res) => {
+      try {
+        const email = req.user?.email || req.user?.user?.email;
+
+        const query = { addedByEmail: email };
+
+        const myCars = await carsCollection.find(query).toArray();
+        res.send(myCars);
+      } catch (error) {
+        res
+          .status(500)
+          .send({ message: "Internal Server Error", error: error.message });
+      }
     });
 
     await client.db("admin").command({ ping: 1 });
