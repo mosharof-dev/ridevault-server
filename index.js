@@ -54,7 +54,7 @@ const run = async () => {
     const carsCollection = database.collection("cars");
     const bookingsCollection = database.collection("bookings");
 
-// API endpoint to create a new booking
+    // API endpoint to create a new booking
     app.post("/booking", verifyToken, async (req, res) => {
       try {
         const booking = req.body;
@@ -90,7 +90,24 @@ const run = async () => {
           .send({ message: "Booking process failed", error: error.message });
       }
     });
- 
+    // API endpoint to get bookings for a specific user (Private Route)
+    app.get("/booking", verifyToken, async (req, res) => {
+      try {
+        const email = req.query.email;
+
+        // Security check
+        if (req.user.email !== email) {
+          return res.status(403).send({ message: "Forbidden access" });
+        }
+
+        const query = { userEmail: email };
+        const result = await bookingsCollection.find(query).toArray();
+
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: "Failed", error: error.message });
+      }
+    });
     // API endpoint to add a new car
     app.post("/car", verifyToken, async (req, res) => {
       const car = req.body;
@@ -108,7 +125,7 @@ const run = async () => {
       res.send(featuredCarsWithLimit);
     });
     // API endpoint to get a car by ID
-    app.get("/car/:id", async (req, res) => {
+    app.get("/car/:id",  async (req, res) => {
       const id = req.params.id;
       const car = await carsCollection.findOne({ _id: new ObjectId(id) });
       res.send(car);
