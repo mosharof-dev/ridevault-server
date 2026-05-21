@@ -52,8 +52,45 @@ const run = async () => {
 
     const database = client.db("ridevault-database");
     const carsCollection = database.collection("cars");
-    // const bookingCollection = admin.collection("booking");
+    const bookingsCollection = database.collection("bookings");
 
+// API endpoint to create a new booking
+    app.post("/booking", verifyToken, async (req, res) => {
+      try {
+        const booking = req.body;
+
+        // 1. Debug: Check what frontend is sending
+        console.log("Received carId:", booking.carId);
+
+        if (!booking.carId) {
+          return res
+            .status(400)
+            .send({ message: "carId is missing from frontend" });
+        }
+
+        const bookingResult = await bookingsCollection.insertOne(booking);
+
+        const carFilter = { _id: new ObjectId(booking.carId) };
+        const updateDoc = {
+          $inc: { bookingCount: 1 },
+        };
+
+        const updateResult = await carsCollection.updateOne(
+          carFilter,
+          updateDoc,
+        );
+
+        console.log("Update Result:", updateResult);
+
+        res.status(201).send({ bookingResult, updateResult });
+      } catch (error) {
+        console.error("Booking Error:", error);
+        res
+          .status(500)
+          .send({ message: "Booking process failed", error: error.message });
+      }
+    });
+ 
     // API endpoint to add a new car
     app.post("/car", verifyToken, async (req, res) => {
       const car = req.body;
