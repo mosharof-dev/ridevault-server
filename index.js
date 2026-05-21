@@ -110,23 +110,49 @@ const run = async () => {
       }
     });
 
-  
-// API endpoint to update a car by ID (Private Route)
-app.patch("/my-cars/:id", verifyToken, async (req, res) => {
-  try {
-    const id = req.params.id;
-    const updatedData = req.body;
-    
-    const filter = { _id: new ObjectId(id) };
-    const updateDoc = { $set: updatedData };
-    
-    const result = await carsCollection.updateOne(filter, updateDoc);
-    res.send(result);
-  } catch (error) {
-    console.error("Update Error:", error);
-    res.status(500).send({ message: "Failed to update car data" });
-  }
-});
+    // API endpoint to update a car by ID (Private Route)
+    app.patch("/my-cars/:id", verifyToken, async (req, res) => {
+      try {
+        const id = req.params.id;
+        const updatedData = req.body;
+
+        const filter = { _id: new ObjectId(id) };
+        const updateDoc = { $set: updatedData };
+
+        const result = await carsCollection.updateOne(filter, updateDoc);
+        res.send(result);
+      } catch (error) {
+        console.error("Update Error:", error);
+        res.status(500).send({ message: "Failed to update car data" });
+      }
+    });
+
+    // API endpoint to delete a car by ID (Private Route)
+    app.delete("/my-cars/:id", verifyToken, async (req, res) => {
+      try {
+        const id = req.params.id;
+
+        // 1. Check if ID is a valid MongoDB ObjectId
+        if (!ObjectId.isValid(id)) {
+          return res.status(400).send({ message: "Invalid Car ID format" });
+        }
+
+        const filter = { _id: new ObjectId(id) };
+        const result = await carsCollection.deleteOne(filter);
+
+        // 2. Check if the car was actually found and deleted
+        if (result.deletedCount === 0) {
+          return res
+            .status(404)
+            .send({ message: "Car not found or already deleted" });
+        }
+
+        res.status(200).send(result);
+      } catch (error) {
+        console.error("Delete Error:", error);
+        res.status(500).send({ message: "Failed to delete car data" });
+      }
+    });
 
     await client.db("admin").command({ ping: 1 });
     console.log(
