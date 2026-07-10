@@ -5,7 +5,6 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const { createRemoteJWKSet, jwtVerify } = require("jose-cjs");
 dotenv.config();
 
-
 const app = express();
 const port = process.env.PORT;
 
@@ -23,7 +22,7 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   },
 });
-// JWKS from Auth0
+
 const JWKS = createRemoteJWKSet(
   new URL(`${process.env.CLIENT_URL}/api/auth/jwks`),
 );
@@ -125,7 +124,7 @@ const run = async () => {
       res.send(featuredCarsWithLimit);
     });
     // API endpoint to get a car by ID
-    app.get("/car/:id",  async (req, res) => {
+    app.get("/car/:id", async (req, res) => {
       const id = req.params.id;
       const car = await carsCollection.findOne({ _id: new ObjectId(id) });
       res.send(car);
