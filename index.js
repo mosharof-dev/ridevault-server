@@ -5,7 +5,7 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const { createRemoteJWKSet, jwtVerify } = require("jose-cjs");
 dotenv.config();
 
-// Express app initialization
+
 const app = express();
 const port = process.env.PORT;
 
